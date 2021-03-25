@@ -58,7 +58,10 @@ def extract_files_for_commit(rev):
         raise GerritCheckExecption("Could not run diff on current revision. "
                                    "Make sure that the current revision has a "
                                    "parent:" + err)
-    return [f.strip() for f in out.splitlines() if len(f)]
+    def _fname(f):
+        return f if sys.version_info.major == 2 else f.decode('utf-8')
+
+    return [_fname(f).strip() for f in out.splitlines() if len(f)]
 
 
 def filter_files(files, suffix=CPP_FILES):
