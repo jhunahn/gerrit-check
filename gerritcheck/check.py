@@ -115,7 +115,9 @@ def cppcheck_on_files(files, commit):
     """
     cppcheck_cmd = local["cppcheck"][
         "--quiet",
+        "--enable=all",
         "-j %d" % (multiprocessing.cpu_count() * 2),
+        "--language=c++",
         "--template={file}###{line}###{severity}###{message}"]
 
     # Each line in the output is an issue
@@ -141,7 +143,6 @@ def cppcheck_on_files(files, commit):
             })
 
         if len(review["comments"]):
-            review["labels"] = {"Code-Review": -1}
             return json.dumps(review)
 
     # Check the return code only just now as cppcheck might still have returned
@@ -188,7 +189,6 @@ def cpplint_on_files(files, commit, filters=DEFAULT_CPPLINT_FILTER_OPTIONS):
                 "message": "[{0}] {1}".format(category, message)
             })
         if len(review["comments"]):
-            review["labels"] = {"Code-Review": -1}
             return json.dumps(review)
 
     # Check the return code only just now as cpplint might still have returned
