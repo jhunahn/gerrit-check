@@ -82,6 +82,18 @@ def codespell_on_files(files, commit):
     """ Runs codespell on the files to report style guide violations.
     """
     import re
+    import requests
+
+    url = 'https://raw.githubusercontent.com/codespell-project/codespell/master/codespell_lib/data/dictionary.txt'
+
+    codespell_cmd = local['codespell']
+    db_path = os.path.join(os.environ['HOME'], 'dictionary.txt')
+
+    r = requests.get(url, stream=True)
+    if r.ok:
+        with open(db_path, 'w') as f:
+            f.write(r.text)
+        codespell_cmd = codespell_cmd['-D', db_path]
 
     regex = r'{0}:(\d+):\s([\x20-\x7E]+) ==> ([\x20-\x7E]+)'
     review = dict()
@@ -89,7 +101,7 @@ def codespell_on_files(files, commit):
     for file in files:
         comments = list()
 
-        rc, out, err = local["codespell"]["-f", file].run(retcode=None)
+        rc, out, err = codespell_cmd['-f', file].run(retcode=None)
 
         if not rc: continue
         if not out:
