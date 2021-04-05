@@ -83,6 +83,63 @@ def line_part_of_commit(file, line, commit):
     return line_val.split(" ", 1)[0] == commit
 
 
+def codespell_on_files(files, commit):
+    """ Runs codespell on the files to report style guide violations.
+    """
+    import re
+    import requests
+
+    url = 'https://raw.githubusercontent.com/codespell-project/codespell/master/codespell_lib/data/dictionary.txt'
+
+    codespell_cmd = local['codespell']
+    db_path = os.path.join(os.environ['HOME'], 'dictionary.txt')
+
+    r = requests.get(url, stream=True)
+    if r.ok:
+        with open(db_path, 'w') as f:
+            f.write(r.text)
+        codespell_cmd = codespell_cmd['-D', db_path]
+
+    regex = r'{0}:(\d+):\s([\x20-\x7E]+) ==> ([\x20-\x7E]+)'
+    review = dict()
+
+    for file in files:
+        comments = list()
+
+        rc, out, err = codespell_cmd['-f', file].run(retcode=None)
+
+        if not rc: continue
+        if not out:
+            review["message"] = "[Codespell] Did not complete successfully: " + err
+            return json.dumps(review)
+
+        for conv in out.splitlines(False):
+            match_ = re.match(regex.format(file), conv)
+            if not match_: continue
+
+            lineno, before, after = match_.groups()
+
+            sha, blame = git("blame", "-l", "-L{0},{0}".format(lineno), file).split(" ", 1)
+            if sha != commit: continue
+
+            match_ = re.match(r'^.+\ \d+\) (.*)$', blame)
+            if not match_: continue
+
+            line = str(*match_.groups())
+
+            comments += [{'path':file, 'line':lineno,
+                          'message':'It may be misspelled. perhaps \'{0}\'?\n-{1}\n+{2}'
+                          .format(after, line, line.replace(before, after))}]
+        review["comments"] = {file:comments}
+
+    if review.get("comments",[]):
+        review["message"] = "[Codespell] Some issues need to be fixed."
+    else:
+        review["message"] = "[Codespell] No issues found. OK"
+
+    return json.dumps(review)
+
+
 def flake8_on_files(files, commit):
     """ Runs flake8 on the files to report style guide violations.
     """
@@ -224,7 +281,8 @@ def submit_review(change, user, host, data, port=22):
 CHECKER_MAPPING = {
     "cppcheck": cppcheck_on_files,
     "cpplint": cpplint_on_files,
-    "flake8": flake8_on_files
+    "flake8": flake8_on_files,
+    "codespell": codespell_on_files
 }
 
 def main():

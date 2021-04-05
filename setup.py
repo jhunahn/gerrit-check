@@ -34,7 +34,7 @@ cpplint and flake8 into line by line comments in Gerrit.
       """,
       license="Apache 2.0",
       packages=find_packages(),
-      install_requires=['plumbum', 'flake8', 'cpplint'],
+      install_requires=['plumbum', 'flake8', 'cpplint', 'codespell'],
       entry_points={
           'console_scripts': [
               'gerrit-check=gerritcheck.check:main'
