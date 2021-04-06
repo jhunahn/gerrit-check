@@ -94,7 +94,7 @@ def codespell_on_files(files, commit):
     codespell_cmd = local['codespell']
     db_path = os.path.join(os.environ['HOME'], 'dictionary.txt')
 
-    r = requests.get(url, stream=True)
+    r = requests.get(url, stream=True, verify=False)
     if r.ok:
         with open(db_path, 'w') as f:
             f.write(r.text)
