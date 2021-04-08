@@ -33,6 +33,9 @@ import os
 import sys
 
 
+OK_MESSAGE = lambda x: '[{0}]  No issues found. OK'.format(x)
+ISSUE_MESSAGE = lambda x: '[{0}] Some issues need to be fixed.'.format(x)
+ERROR_MESSAGE = lambda *x: '[{0}] [ERROR] Did not complete successfully\n{1}'.format(*x)
 
 CPP_HEADER_FILES = (".h", ".hpp")
 CPP_SOURCE_FILES = (".c", ".cc", ".cpp")
@@ -133,9 +136,9 @@ def codespell_on_files(files, commit):
         review["comments"] = {file:comments}
 
     if review.get("comments",[]):
-        review["message"] = "[Codespell] Some issues need to be fixed."
+        review["message"] = ISSUE_MESSAGE('Codespell')
     else:
-        review["message"] = "[Codespell] No issues found. OK"
+        review["message"] = OK_MESSAGE('Codespell')
 
     return json.dumps(review)
 
@@ -169,9 +172,9 @@ def flake8_on_files(files, commit):
                 "message": "[{0}] {1}(column: {2})\n+{3}".format(code, text, column, src)
             })
     if "comments" in review and len(review["comments"]):
-        review["message"] = "[FLAKE8] Some issues found."
+        review["message"] = ISSUE_MESSAGE('FLAKE8')
     else:
-        review["message"] = "[FLAKE8] No issues found. OK"
+        review["message"] = OK_MESSAGE('FLAKE8')
     sys.stdout = old_stdout
     return json.dumps(review)
 
@@ -193,7 +196,7 @@ def cppcheck_on_files(files, commit):
     rc, out, err = cppcheck_cmd.run(filter_files(files, CPP_SOURCE_FILES),
                                     retcode=None)
     if len(err) > 0:
-        review["message"] = "[CPPCHECK] Some issues need to be fixed."
+        review["message"] = ISSUE_MESSAGE('CPPCHECK')
 
         review["comments"] = defaultdict(list)
         for c in err.split("\n"):
@@ -216,11 +219,11 @@ def cppcheck_on_files(files, commit):
     # Check the return code only just now as cppcheck might still have returned
     # some valid comments.
     if rc != 0:
-        review["message"] = "[CPPCHECK] Did not complete successfully: " + out
+        review["message"] = ERROR_MESSAGE('CPPCHECK', out)
         return json.dumps(review)
 
     # Add a review comment that no issues have been found
-    review["message"] = "[CPPCHECK] No issues found. OK"
+    review["message"] = OK_MESSAGE('CPPCHECK')
     return json.dumps(review)
 
 
@@ -235,7 +238,7 @@ def cpplint_on_files(files, commit, filters=DEFAULT_CPPLINT_FILTER_OPTIONS):
     review = {}
     rc, out, err = cpplint_cmd.run(filter(os.path.exists, files), retcode=None)
     if len(err) > 0 and len(files):
-        review["message"] = "[CPPLINT] Some issues need to be fixed."
+        review["message"] = ISSUE_MESSAGE('CPPLINT')
         review["comments"] = defaultdict(list)
         for c in err.split("\n"):
             if len(c.strip()) == 0 or c.strip().startswith("Done") or \
@@ -262,11 +265,11 @@ def cpplint_on_files(files, commit, filters=DEFAULT_CPPLINT_FILTER_OPTIONS):
     # Check the return code only just now as cpplint might still have returned
     # some valid comments.
     if rc != 0:
-        review["message"] = "[CPPLINT] Did not complete successfully: " + out
+        review["message"] = ERROR_MESSAGE('CPPLINT', out)
         return json.dumps(review)
 
     # Add a review comment that no issues have been found
-    review["message"] = "[CPPLINT] No issues found. OK"
+    review["message"] = OK_MESSAGE('CPPLINT')
     return json.dumps(review)
 
 
