@@ -97,10 +97,13 @@ def codespell_on_files(files, commit):
     codespell_cmd = local['codespell']
     db_path = os.path.join(os.environ['HOME'], 'dictionary.txt')
 
-    r = requests.get(url, stream=True, verify=False)
-    if r.ok:
-        with open(db_path, 'w') as f:
-            f.write(r.text)
+    if not os.path.exists(db_path):
+        r = requests.get(url, stream=True, verify=False)
+        if r.ok:
+            with open(db_path, 'w') as f:
+                f.write(r.text)
+
+    if os.path.exists(db_path):
         codespell_cmd = codespell_cmd['-D', db_path]
 
     regex = r'{0}:(\d+):\s([\x20-\x7E]+) ==> ([\x20-\x7E]+)'
