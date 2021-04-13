@@ -194,6 +194,11 @@ def cppcheck_on_files(files, commit):
         "--language=c++",
         "--template={file}###{line}###{severity}###{message}"]
 
+    cppcheck_cfg = os.path.abspath('.cppcheck.rc')
+    if os.path.isfile(cppcheck_cfg):
+        with open(cppcheck_cfg, 'r') as f:
+            cppcheck_options = [l.strip() for l in f.readlines() if not l.startswith('#')]
+            cppcheck_cmd = cppcheck_cmd[cppcheck_options]
     # Each line in the output is an issue
     review = {}
     rc, out, err = cppcheck_cmd.run(filter_files(files, CPP_SOURCE_FILES),
